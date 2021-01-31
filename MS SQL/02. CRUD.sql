@@ -275,6 +275,11 @@ CREATE VIEW V_EmployeeNameJobTitle AS
 SELECT FirstName +' ' + ISNULL(MiddleName, '') +' ' +  LastName AS [Full Name],
 		JobTitle
 	FROM Employees
+--17.3 
+CREATE VIEW V_EmployeeNameJobTitle AS
+SELECT CONCAT(FirstName,' ',MiddleName,' ',LastName) AS [Full Name],
+		JobTitle
+	FROM Employees
 
 --Ex 18. Write a SQL query to find all distinct job titles.
 SELECT DISTINCT JobTitle
