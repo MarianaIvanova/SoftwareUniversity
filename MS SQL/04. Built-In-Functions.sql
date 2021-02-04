@@ -73,7 +73,7 @@ SELECT CONCAT_WS(' ',FirstName,MiddleName,LastName)--when there is a NULL, it ju
 SELECT FirstName, MiddleName, LastName, SUBSTRING(LastName,1,3)+'...' AS ShortFamilyName
   FROM [SoftUni].[dbo].[Employees] --it works only in the result from the query, but not in the basic table
 
---replays - it replaces the data only in the result from the query, but not in the basic table like it works with UPDATE. REPLACE(String, Pattern, Replacement)
+--replace - it replaces the data only in the result from the query, but not in the basic table like it works with UPDATE. REPLACE(String, Pattern, Replacement). It is not case sensitive for the String and Pattern, but it writes exactly what we have written in the Replacement
 SELECT FirstName, MiddleName, LastName, REPLACE(LastName,'Gil','***') AS ChangedFamilyName
   FROM [SoftUni].[dbo].[Employees] --it works only in the result from the query, but not in the basic table
 SELECT FirstName, MiddleName, LastName, REPLACE(LastName,N'Ãîøî','***') AS ChangedFamilyName
@@ -111,7 +111,7 @@ SELECT FirstName, LastName, LOWER(LastName) AS LowerLastName, UPPER(LastName) AS
 SELECT FirstName, LastName, REVERSE(LastName) AS ReverseLastName
   FROM [SoftUni].[dbo].[Employees]
 
---REPLICATE(String, Count)
+--REPLICATE(String, Count) -- write the string count times
 SELECT FirstName, LastName, REPLICATE(LastName,3) AS LastNameNTimes, REPLICATE('*',LEN(LastName))
   FROM [SoftUni].[dbo].[Employees]
 
@@ -451,10 +451,15 @@ SELECT *
 --Part I – Queries for SoftUni Database
 --Ex 1. Find Names of All Employees by First Name
 --Write a SQL query to find first and last names of all employees whose first name starts with "SA". 
+--1.1 Mine
 USE SoftUni
 SELECT FirstName, LastName 
 	FROM [SoftUni].[dbo].[Employees]
-	WHERE LEFT(FirstName,2) = 'SA'
+	WHERE LEFT(FirstName,2) = 'SA' 
+--1.2 EX
+SELECT FirstName, LastName 
+	FROM [SoftUni].[dbo].[Employees]
+	WHERE FirstName LIKE 'SA%'--When we want CS(Case Sensitive) we add here: COLLATE Cyrillic_General_CS_AS
 
 --Ex 2. Find Names of All employees by Last Name 
 --Write a SQL query to find first and last names of all employees whose last name contains "ei".
@@ -484,16 +489,28 @@ SELECT [Name]
 
 --Ex 6. Find Towns Starting With
 --Write a SQL query to find all towns that start with letters M, K, B or E. Order them alphabetically by town name. 
+--6.1 Mine
 SELECT TownID, [Name]
 	FROM [SoftUni].[dbo].[Towns]
 	WHERE LEFT([Name],1) IN ('M','K','B','E')
 	ORDER BY [Name]
+--6.2 Ex
+SELECT TownID, [Name]
+	FROM [SoftUni].[dbo].[Towns]
+	WHERE [Name] LIKE '[MKBE]%' --RegEx
+	ORDER BY [Name]
 	
 --Ex 7. Find Towns Not Starting With
 --Write a SQL query to find all towns that does not start with letters R, B or D. Order them alphabetically by name. 
+--7.1 Mine
 SELECT TownID, [Name]
 	FROM [SoftUni].[dbo].[Towns]
 	WHERE LEFT([Name],1) NOT IN ('R','B','D')
+	ORDER BY [Name]	
+--7.2 Ex
+SELECT TownID, [Name]
+	FROM [SoftUni].[dbo].[Towns]
+	WHERE [Name] LIKE '[^RBD]%' -- NOT LIKE '[RBD]%' 
 	ORDER BY [Name]	
 
 --Ex 8. Create View Employees Hired After 2000 Year
@@ -520,6 +537,7 @@ SELECT EmployeeID, FirstName, LastName, Salary,
 --Ex 11. Find All Employees with Rank 2 *
 --Use the query from the previous problem and upgrade it, so that it finds only the employees whose Rank is 2 and again, order them by Salary (descending).
 
+--11.1
 WITH NewShortTableEmployees AS
 (SELECT TOP(293) EmployeeID, FirstName, LastName, Salary,
 		DENSE_RANK() OVER (PARTITION BY Salary ORDER BY EmployeeID) AS [RANK] 
@@ -530,23 +548,45 @@ SELECT *
 	FROM NewShortTableEmployees
 	WHERE [RANK] = 2
 	ORDER BY Salary DESC
+--11.2
+SELECT * FROM
+	(SELECT TOP(293) EmployeeID, FirstName, LastName, Salary,
+			DENSE_RANK() OVER (PARTITION BY Salary ORDER BY EmployeeID) AS [RANK] 
+		FROM [SoftUni].[dbo].[Employees]
+		WHERE Salary BETWEEN 10000 and 50000
+		ORDER BY Salary DESC) AS [t]
+WHERE [RANK] = 2
+ORDER BY Salary DESC
 
 --Part II – Queries for Geography Database 
 
 --Ex 12. Countries Holding ‘A’ 3 or More Times
 --Find all countries that holds the letter 'A' in their name at least 3 times (case insensitively), sorted by ISO code. Display the country name and ISO code. 
 --USE Geography
+--12.1 Mine
 SELECT CountryName, IsoCode
   FROM [Geography].[dbo].[Countries]
   WHERE CountryName LIKE '%A%A%A%'
   ORDER BY IsoCode
+--12.2 Ex
+SELECT CountryName, IsoCode
+  FROM [Geography].[dbo].[Countries]
+  WHERE LEN(CountryName) - LEN(REPLACE(CountryName,'A','')) >= 3
+  ORDER BY IsoCode
 
 --Ex 13. Mix of Peak and River Names
 --Combine all peak names with all river names, so that the last letter of each peak name is the same as the first letter of its corresponding river name. Display the peak names, river names, and the obtained mix (mix should be in lowercase). Sort the results by the obtained mix.
+--13.1 Mine
 SELECT p.PeakName, r.RiverName, 
 		LOWER(CONCAT(p.PeakName, SUBSTRING(r.RiverName,2, LEN(r.RiverName) -1))) AS Mix
 	FROM [Geography].[dbo].[Peaks] AS p
 	JOIN [Geography].[dbo].[Rivers] AS r ON RIGHT(p.PeakName,1) = LEFT(r.RiverName,1)
+	ORDER BY Mix
+--13.2 Ex
+SELECT PeakName, RiverName, 
+		LOWER(LEFT(PeakName, LEN(PeakName) -1) + RiverName) AS Mix
+	FROM [Geography].[dbo].[Peaks], [Geography].[dbo].[Rivers]
+	WHERE RIGHT(PeakName,1) = LEFT(RiverName,1)
 	ORDER BY Mix
 
 --Part III – Queries for Diablo Database
@@ -576,6 +616,7 @@ SELECT Username, IpAddress
 
 --Ex 17. Show All Games with Duration and Part of the Day
 --Find all games with part of the day and duration sorted by game name alphabetically then by duration (alphabetically, not by the timespan) and part of the day (all ascending). Parts of the day should be Morning (time is >= 0 and < 12), Afternoon (time is >= 12 and < 18), Evening (time is >= 18 and < 24). Duration should be Extra Short (smaller or equal to 3), Short (between 4 and 6 including), Long (greater than 6) and Extra Long (without duration). 
+--17.1 Mine
 SELECT [Name],
 	CASE 
 		WHEN (DATEPART(Hour, Start) * 60 * 60  + DATEPART(Minute,Start) * 60 + DATEPART(Second, Start) >= 0 AND  DATEPART(Hour, Start) * 60 * 60  + DATEPART(Minute,Start) * 60 + DATEPART(Second, Start) < 12 * 60 * 60)
@@ -597,11 +638,51 @@ SELECT [Name],
   FROM [Diablo].[dbo].[Games]
   ORDER BY [Name] ASC, Duration ASC, [Part of the Day] ASC
 
+--17.2 Ex
+SELECT [Name],
+	CASE 
+		WHEN DATEPART(Hour, Start) BETWEEN 0 AND 11	THEN 'Morning'
+		WHEN DATEPART(Hour, Start) BETWEEN 12 AND 17 THEN 'Afternoon'
+		WHEN DATEPART(Hour, Start) BETWEEN 18 AND 23 THEN 'Evening'
+	END AS [Part of the Day],
+	CASE
+			WHEN Duration <= 3 THEN 'Extra Short'
+			WHEN Duration >= 4 AND Duration <= 6 THEN 'Short'
+			WHEN Duration > 6 THEN 'Long' 
+			ELSE 'Extra Long'
+	END AS Duration
+  FROM [Diablo].[dbo].[Games]
+  ORDER BY [Name] ASC, [Duration] ASC, [Part of the Day] ASC
+
 --Part IV – Date Functions Queries
 
 --Ex 18. Orders Table
 --You are given a table Orders(Id, ProductName, OrderDate) filled with data. Consider that the payment for that order must be accomplished within 3 days after the order date. Also the delivery date is up to 1 month. Write a query to show each product’s name, order date, pay and deliver due dates. 
+
 SELECT ProductName, OrderDate,
 	DATEADD(DAY, 3, OrderDate) AS [Pay Due], 
 	DATEADD(MONTH, 1, OrderDate) AS [Deliver Due]
 	FROM [Orders].[dbo].[Orders]
+
+--Ex 19. People Table
+--Create a table People(Id, Name, Birthdate). Write a query to find age in years, months, days and minutes for each person for the current time of executing the query. 
+CREATE DATABASE PeopleTest
+USE PeopleTest
+CREATE TABLE People 
+(
+	Id INT PRIMARY KEY IDENTITY,
+	[Name] NVARCHAR(200) NOT NULL,
+	Birthdate DATE NOT NULL
+)
+INSERT INTO People VALUES
+('Victor','2000-12-07 00:00:00.000'),
+('Steven','1992-09-10 00:00:00.000'),
+('Stephen','1910-09-19 00:00:00.000'),
+('John','2010-01-06 00:00:00.000')
+
+SELECT [Name], 
+	DATEDIFF(YEAR, Birthdate, GETDATE()) AS [Age in Years],
+	DATEDIFF(MONTH, Birthdate, GETDATE()) AS [Age in Months],
+	DATEDIFF(DAY, Birthdate, GETDATE()) AS [Age in Days],
+	DATEDIFF(MINUTE, Birthdate, GETDATE()) AS [Age in Minutes]
+	FROM [PeopleTest].[dbo].[People]
