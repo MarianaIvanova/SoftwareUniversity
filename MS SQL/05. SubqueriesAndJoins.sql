@@ -264,7 +264,7 @@ SELECT COUNT(CountryCode) AS Count FROM
 	WHERE m.MountainRange IS NULL) AS tmp
 --Ex 17. Highest Peak and Longest River by Country
 --For each country, find the elevation of the highest peak and the length of the longest river, sorted by the highest peak elevation (from highest to lowest), then by the longest river length (from longest to smallest), then by country name (alphabetically). Display NULL when no data is available in some of the columns. Limit only the first 5 rows.
-
+--17.1 Mine
 SELECT TOP(5) CountryName, Elevation, [Length]
 	FROM
 	(SELECT c.CountryName, p.PeakName, p.Elevation, r.RiverName, r.[Length],
@@ -278,9 +278,19 @@ SELECT TOP(5) CountryName, Elevation, [Length]
 		  LEFT JOIN [Geography].[dbo].[Rivers] r ON cr.RiverId = r.Id) AS tmp
 	WHERE RankPeaks = 1 AND RankRivers = 1
 ORDER BY Elevation DESC, [Length] DESC, CountryName
-
+--17.2 Ex
+SELECT TOP(5) c.CountryName, MAX(p.Elevation) AS Highestpeak, MAX(r.[Length]) AS LongestRiver
+	  FROM [Geography].[dbo].[Countries] c
+		  LEFT JOIN [Geography].[dbo].[MountainsCountries] mc ON c.CountryCode = mc.CountryCode
+		  LEFT JOIN [Geography].[dbo].[Mountains] m ON mc.MountainId = m.Id
+		  LEFT JOIN [Geography].[dbo].[Peaks] p ON p.MountainId = m.Id
+		  LEFT JOIN [Geography].[dbo].[CountriesRivers] cr ON c.CountryCode = cr.CountryCode
+		  LEFT JOIN [Geography].[dbo].[Rivers] r ON cr.RiverId = r.Id
+GROUP BY c.CountryName
+ORDER BY Highestpeak DESC, LongestRiver DESC, c.CountryName
 --Ex 18. Highest Peak Name and Elevation by Country
 --For each country, find the name and elevation of the highest peak, along with its mountain. When no peaks are available in some country, display elevation 0, "(no highest peak)" as peak name and "(no mountain)" as mountain name. When multiple peaks in some country have the same elevation, display all of them. Sort the results by country name alphabetically, then by highest peak name alphabetically. Limit only the first 5 rows.
+--18.1 Mine
 SELECT TOP(5) CountryName AS Country, 
 		CASE
 			WHEN PeakName IS NULL THEN '(no highest peak)'
@@ -303,3 +313,19 @@ SELECT TOP(5) CountryName AS Country,
 		  LEFT JOIN [Geography].[dbo].[Peaks] p ON p.MountainId = m.Id) AS tmp
 	WHERE RankPeaks = 1 
 ORDER BY CountryName, [Highest Peak Name]
+--18.2 Ex
+SELECT TOP(5) CountryName AS Country, 
+			ISNULL(PeakName,'(no highest peak)') AS [Highest Peak Name], 
+			ISNULL(Elevation,0) AS [Highest Peak Elevation], 
+			ISNULL(MountainRange,'(no mountain)') AS Mountain
+	FROM
+	(SELECT c.CountryName, m.MountainRange, p.PeakName, p.Elevation,
+			DENSE_RANK() OVER (PARTITION BY CountryName ORDER BY MAX(p.Elevation) DESC) AS RankPeaks
+	  FROM [Geography].[dbo].[Countries] c
+		  LEFT JOIN [Geography].[dbo].[MountainsCountries] mc ON c.CountryCode = mc.CountryCode
+		  LEFT JOIN [Geography].[dbo].[Mountains] m ON mc.MountainId = m.Id
+		  LEFT JOIN [Geography].[dbo].[Peaks] p ON p.MountainId = m.Id
+	GROUP BY c.CountryName, m.MountainRange, p.PeakName, p.Elevation) AS tmp
+	WHERE RankPeaks = 1 
+ORDER BY CountryName, [Highest Peak Name]
+
