@@ -128,6 +128,7 @@ SELECT DepositGroup, MagicWandCreator, MIN(DepositCharge) AS MinDepositCharge
 --Write down a query that creates 7 different groups based on their age.
 --Age groups should be as follows:[0-10], [11-20], [21-30], [31-40], [41-50], [51-60], [61+]
 --The query should return: Age groups, Count of wizards in it
+--9.1 Mine
 SELECT 
 		CASE 
 			WHEN Age >= 0 AND Age <= 10 THEN '[0-10]'
@@ -150,6 +151,21 @@ SELECT
 			WHEN Age >= 51 AND Age <= 60 THEN '[51-60]'
 			ELSE '[61+]'
 		END
+--9.2 Ex
+SELECT AgeGroup, COUNT(AgeGroup) AS WizardCount
+	FROM
+	(SELECT 
+			CASE 
+				WHEN Age >= 0 AND Age <= 10 THEN '[0-10]'
+				WHEN Age >= 11 AND Age <= 20 THEN '[11-20]'
+				WHEN Age >= 21 AND Age <= 30 THEN '[21-30]'
+				WHEN Age >= 31 AND Age <= 40 THEN '[31-40]'
+				WHEN Age >= 41 AND Age <= 50 THEN '[41-50]'
+				WHEN Age >= 51 AND Age <= 60 THEN '[51-60]'
+				WHEN Age >= 61 THEN'[61+]'
+			END AS AgeGroup
+		  FROM [Gringotts].[dbo].[WizzardDeposits]) AS tmp
+GROUP BY AgeGroup
 
 --Ex 10. First Letter
 --Write a query that returns all unique wizard first letters of their first names only if they have deposit of type Troll Chest. Order them alphabetically. Use GROUP BY for uniqueness.
@@ -177,7 +193,7 @@ SELECT SUM(Amnt) AS SumDifference FROM
 			ELSE 0
 		END AS Amnt
 		FROM [Gringotts].[dbo].[WizzardDeposits]) AS tmp
---12.2 Ex
+--12.2 Ex1
 SELECT SUM(Diff) AS SumDifference
 	FROM
 	(SELECT (a.DepositAmount - b.DepositAmount) AS Diff
@@ -188,7 +204,11 @@ SELECT SUM(Diff) AS SumDifference
 			(SELECT Id, DepositAmount
 				FROM [Gringotts].[dbo].[WizzardDeposits]) AS b
 		ON a.Id = b.Id - 1) AS tmp
-
+--12.2 Ex2
+SELECT SUM(tmp.Diff) AS SumDifference
+	FROM
+	(SELECT DepositAmount - LEAD(DepositAmount,1) OVER (ORDER BY Id) AS Diff
+			FROM [Gringotts].[dbo].[WizzardDeposits]) AS tmp
 
 --Ex 13. Departments Total Salaries
 --That’s it! You no longer work for Mr. Bodrog. You have decided to find a proper job as an analyst in SoftUni. It’s not a surprise that you will use the SoftUni database. Things get more exciting here!
@@ -250,6 +270,7 @@ SELECT DepartmentID, Salary AS ThirdHighestSalary
 --Ex 19. Salary Challenge
 --Write a query that returns: FirstName, LastName, DepartmentID
 --Select all employees who have salary higher than the average salary of their respective departments. Select only the first 10 rows. Order by DepartmentID.
+--19.1 Mine
 SELECT TOP(10) a.FirstName, a.LastName, a.DepartmentID
 		FROM
 		(SELECT FirstName, LastName, DepartmentID, Salary
@@ -260,4 +281,14 @@ SELECT TOP(10) a.FirstName, a.LastName, a.DepartmentID
 					GROUP BY DepartmentID) AS b
 			 ON a.DepartmentID = b.DepartmentID
 		WHERE a.Salary > b.AVGSalary
+ORDER BY DepartmentID
+
+--19.2 Ex
+SELECT TOP(10) FirstName, LastName, DepartmentID
+		FROM [SoftUni].[dbo].[Employees] AS a
+		WHERE Salary > 
+				(SELECT AVG(Salary) AS AVGSalary
+					  FROM [SoftUni].[dbo].[Employees]
+					  WHERE DepartmentID = a.DepartmentID
+					  GROUP BY DepartmentID)
 ORDER BY DepartmentID
