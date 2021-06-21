@@ -1,2 +1,2 @@
 # SoftwareUniversity
-Problems from the modules in Software University
+Tasks from the modules in Software University
