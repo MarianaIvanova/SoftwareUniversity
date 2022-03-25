@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CustomDoublyLinkedList
+namespace _3_Lab_CustomDoublyLinkedList
 {
     public class Node//a recursive data structure
     {
